@@ -1,8 +1,7 @@
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-
 <script>
     mermaid.initialize({startOnLoad:true});
-    await mermaid.run({
+    mermaid.run({
       querySelector: '.language-mermaid',
     });
 </script>
@@ -88,4 +87,3 @@ erDiagram
     JoyndAccount_NEW ||--o{ JoyndParticipant_NEW : ""
     
 ```
-
