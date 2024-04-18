@@ -1,3 +1,5 @@
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"/>
+
 # Unity API Questions
 
 1.  Blah
