@@ -9,81 +9,223 @@
 
 # Unity API Questions
 
-1.  Blah
-2.  Blah 2
+## GET /Catalog QUESTIONS 
 
-```mermaid
----
-title: Joynd Entity Relationship Diagram
----
+https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Packages 
 
-erDiagram 
-    Account {
-      int AccountId PK ""
+### C1. What does the Services array do in GET /Catalog?
+
+When a catalog request arrives, HighMatch will return an array of `package` objects where `package.packageId` is the ID you will send for a new Order and `package.name` is what is displayed in the target ATS.
+
+What does the `package.services` array do?
+
+```json
+{
+  "Catalog": [
+    {
+      "package": {
+        "packageId": "string",
+        "name": "string",
+        "services": [
+          {
+            "serviceId": "string",
+            "serviceName": "string"
+          }
+        ]
+      }
     }
-    ParticipantAssessmentRevision_UPDATED {
-    	int ParticipantAssessmentRevisionId PK ""
-    	string Origin "NEW - Describes origin. Default to `Customer Site`. Set on Create. Does not change."
-      string OnCompleteUrl "NEW - If not empty, redirect participant here when complete status reached. Written by Joynd subscriber Handler."      
-    }
-    Participant_UPDATED {
-      int ParticipantId PK ""
-      string Origin "NEW - Describes origin. `Customer Site`. Set on Create. Does not change."
-    }
-    JoyndAccount_NEW {
-      int JoyndAccountId PK
-    	int AccountId FK ""
-    	bool IsActive
-    	string ClientIdentifier "Used when calling Joyned to relate outbound messages to Joyned account"
-    }
-    JoyndParticipantAssessmentRevision_NEW {
-      int JoyndParticipantAssessmentRevision PK
-	    int ParticipantAssessmentRevisionId FK
-	    int JoyndParticipantId FK "Denormalized simplify JoyndAccount lookup, will not change, written by Handler"
-	    string RequesterOrderIdentifier "Sent by Joynd along with Participant.SubjectId when provisioned and returned when completed"
-      int_ OrderMessageId FK "Not a constraint, nullable, relates the Joynd Order event to the MX Message that created the PAR, written by Handler"
-      DateTime OrderedOn
-      DateTime CompletedResultsDeliveredOn "Set to SqlDateMin until complete and successfully delivered to Joynd"
-    	int_ CompletedResultsMessageId FK "Not a constraint, nullable, relates the Joynd Results event to the transmitted MX Message, written by Handler"
-    }
-    JoyndAssessment_NEW {
-       int JoyndAssessmentId PK
-       int AssessmentId FK
-       int JoyndAccountId FK "Denormalized to avoid Account to JoyndAccount lookup, will not change"
-       string ServiceIdentifier "Used by Joynd to request a specific assessment. Cannot change after create (unlike SourceId)."
-       string_ ServiceName "Name returned to Joyned for assessment. Copied from Assessment.Name by default."
-       bool ShowInCatalog "Default=true. If true, assessment is included in array when GetCatalogue called."
-       int SortOrder "Default=1. Order of assessments returned in catalogue. SortOrder, then ServiceName, then ServiceIdentifier"
-    }
-    JoyndParticipant_NEW {
-      int JoyndParticipantId PK
-    	int ParticipantId FK
-      int JoyndAccountId FK "Denormalized to avoid complex JoyndAccount lookup, will not change, written by Handler"
-    	string SubjectIdentifier "Uniquely identifies the participant in the Joynd system. Separate from Participant.SourceId to avoid collisions. Value owned by Joynd. Will not change."
-      int_ OrderMessageId FK "Not a constraint, nullable, relates the Joynd Order event to the MX Message that created the Participant, written by Handler"
-    }
-    PersonAccount {
-    	int PersonId PK
-    	int AccountId PK
-    }
-    Person {
-    	int PersonId PK
-    }
-    Assessment {
-    	int AssessmentId PK
-    }
-    
-    Account ||--o{ PersonAccount : ""
-    PersonAccount }|--|| Person : ""
-    Person ||--o| Participant_UPDATED : ""
-    Account ||--o| Assessment : ""
-    Assessment ||--o| JoyndAssessment_NEW : "Is Available to Joynd Subscriber"
-    Account ||--o| JoyndAccount_NEW : "Exists When Account Integrated to Joynd"
-    JoyndAccount_NEW ||--o{ JoyndAssessment_NEW : "Relates Joynd to Joynd Assessment Properties"
-    Participant_UPDATED ||--o{ ParticipantAssessmentRevision_UPDATED : "Has Zero or More Assessments"
-    ParticipantAssessmentRevision_UPDATED ||--o| JoyndParticipantAssessmentRevision_NEW : "Exists When Participant Assessment Integrated to Joynd"
-    Participant_UPDATED ||--o| JoyndParticipant_NEW : "Exists When Participant Integrated to Joynd"
-    JoyndParticipant_NEW ||--|{ JoyndParticipantAssessmentRevision_NEW : ""
-    JoyndAccount_NEW ||--o{ JoyndParticipant_NEW : ""
-    
+  ]
+}
 ```
+
+### C2. Error Handling - 405
+
+Swagger shows a 405 error code under GET Catalog. Should we return this if the `clientId` parameter is invalid (or no longer a valid HighMatch customer)?
+
+### C3. Error Handling - 503
+
+Swagger shows a 503 error code under GET Catalog. Should we return this when we are offline for maintenance?
+
+#### C4. Error Handling - Unable to Connect
+
+-  In the event Joynd cannot connect to Compass, what is the retry pattern/interval? 
+-  In the event Joynd cannot connect to Compass, is the end-user (the ATS user) impacted (i.e. this is synchronous)? If so, what happens?
+
+#### C5. Error Handling - 400
+
+It appears if we have any other project, we should return the following model:
+
+```json
+{
+  "errorCode": "string",
+  "errorMessage": "string",
+  "errorDescription": "string",
+  "errorSuggestedAction": "string"
+}
+```
+
+-  What happens to this information?
+-  Does it cancel a retry callback? 
+-  Are there any specific codes we need to return?
+
+## POST /Order `orderInfo` Questions
+
+#### OI1. Questions on `orderInfo` fields that may not be relevant to HighMatch.
+
+```json
+{
+  "orderInfo": {
+    "requesterRefId": "string", //do we need to retain this?
+    "clientId": "string", 
+    "packageId": "string",
+    "jobId": "string", //is this relevant to HighMatch?
+    "jobTitle": "string", //is this the job to which the candidate is apply?
+    "jobScoringRef": "string", //what do we do with this?
+    "requesterId": "string", //what do we do with this?
+    "requesterEmail": "string", //is this the recruiter? Do we need this?
+    "emailInvite": true,
+    "billingReference1": "string", //what do we do with this?
+    "billingReference2": "string" //what do we do with this?
+  }
+}
+```
+
+-  `requesterRefId` 
+
+   Is this a Joynd ID or the origin ATS user ID that initiated the Order?
+
+-  `jobId` 
+
+   Is this a Joynd ID or the origin ATS job ID for `jobTitle`?
+
+-  `jobTitle` 
+
+   Is this the job to which the candidate is applying?
+
+-  `jobScoringRef`
+
+   What is this for?
+
+-  `requesterId`
+
+   Is this a Joynd ID or the origin ATS user ID for `requesterEmail`?
+
+-  `requesterEmail`
+
+   Is this the email address of the origin ATS user that initiated the Order?
+
+-  `billingReference1` and `billingReference1` 
+
+   Are these relevant to HighMatch? How are they typically used?
+
+#### OI2. If `orderInfo.emailInvite` is `true`, HighMatch should invite candidate to complete assessment via email?
+
+```json
+{
+  "orderInfo": {
+    "clientId": "string", 
+    "packageId": "string",
+    "emailInvite": true //if false, can HM assume the ATS is handling invitation?
+  }
+}
+```
+
+#### OI3. Is there a text/SMS equivalent to `orderInfo.emailInvite`? HighMatch gets best results sending text messages for invitations.
+
+#### OI4. What is the purpose of `sendResultsToUrl`? We assumed we will POST results to *joyndApiUrl*`/Results`.
+
+#### OI5. Is `onCompletionURL` going to be empty if redirection is unnecessary? Is this only used for candidate-initiated (portal-based) applications?
+
+## POST /Order `subject` questions
+
+```json
+ "subject": {
+    "id": "string",
+    "firstName": "string",
+    "lastName": "string",
+    "middleNames": "string",
+    "nationalId": "string",
+    "dateOfBirth": "2024-04-18",
+    "phone": "string",
+    "addressLine1": "string",
+    "addressLine2": "string",
+    "city": "string",
+    "state": "string",
+    "postalCode": "string",
+    "country": "string",
+    "email": "string",
+    "positionHistory": [
+      {
+        "position": "string",
+        "companyName": "string",
+        "companyPhone": "string",
+        "companyAddressLine1": "string",
+        "companyAddressLine2": "string",
+        "companyCity": "string",
+        "companyState": "string",
+        "companyPostalCode": "string",
+        "companyCountry": "string",
+        "startDate": "2024-04-18",
+        "endDate": "2024-04-18",
+        "currentEmployerFlag": true,
+        "reasonForLeaving": "string",
+        "permissionToContactFlag": true,
+        "payEndAmount": "string",
+        "payEndCurrency": "string",
+        "payEndType": "hourly",
+        "supervisorName": "string",
+        "supervisorTitle": "string",
+        "supervisorEmail": "string",
+        "supervisorPhone": "string"
+      }
+    ],
+    "educationHistory": [
+      {
+        "schoolName": "string",
+        "schoolAddressLine1": "string",
+        "schoolAddressLine2": "string",
+        "schoolCity": "string",
+        "schoolState": "string",
+        "schoolPostalCode": "string",
+        "schoolCountry": "string",
+        "schoolStart": "2024-04-18",
+        "schoolEnd": "2024-04-18",
+        "degreeName": "string",
+        "degreeType": "string",
+        "degreeMajor": "string",
+        "degreeDate": "2024-04-18",
+        "graduatedFlag": true
+      }
+    ],
+    "driversLicense": {
+      "dlNumber": "string",
+      "dlState": "string",
+      "dlExpiry": "2024-04-18"
+    },
+    "licenses": [
+      {
+        "licenseName": "string",
+        "licenseAgency": "string",
+        "licenseState": "string",
+        "licenseNumber": "string",
+        "licenseExpiry": "2024-04-18"
+      }
+    ],
+    "references": [
+      {
+        "referenceName": "string",
+        "referenceEmail": "string",
+        "referencePhone": "string",
+        "referenceRelationship": "string",
+        "referenceType": "string"
+      }
+    ],
+    "customFields": [
+      {
+        "name": "string",
+        "value": "string"
+      }
+    ]
+  }
+```
+
