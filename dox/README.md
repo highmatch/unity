@@ -11,7 +11,7 @@
 
 ## GET /Catalog QUESTIONS 
 
-https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Packages 
+[https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Packages](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Packages )
 
 ### C1. What does the Services array do in GET /Catalog?
 
@@ -69,6 +69,8 @@ It appears if we have any other project, we should return the following model:
 -  Are there any specific codes we need to return?
 
 ## POST /Order `orderInfo` Questions
+
+[https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Order](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Order)
 
 #### OI1. Questions on `orderInfo` fields that may not be relevant to HighMatch.
 
