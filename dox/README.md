@@ -2,12 +2,10 @@
 
 <script>
     mermaid.initialize({startOnLoad:true});
+    await mermaid.run({
+      querySelector: '.language-mermaid',
+    });
 </script>
-<style>
-    .mermaid {  /* add custom styling */  }
-</style>
-
-
 
 
 # Unity API Questions
