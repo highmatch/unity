@@ -4,7 +4,7 @@ The *first* HighMatch/Joynd client uses **Bullhorn**.
 
 The *second* client is currently using **Greenhouse** and plans to move to **ADP** in late 2024. They may want to start on Greenhouse, then migrate to ADP. We are waiting to hear their plans.
 
-We plan to integrate the first client and achieve stability *before* starting deployment of the second client (though planning for the second can start earlier). We do not want greenfield coding problems from the initial coding effort to impact two clients (if possible).
+HighMatch plans to integrate the first client and achieve stability *before* starting deployment of the second client (though planning for the second can start earlier). We do not want greenfield coding problems from the initial coding effort to impact two clients (if possible).
 
 # Dev Environment Criteria
 
@@ -15,6 +15,10 @@ We plan to integrate the first client and achieve stability *before* starting de
 -  Catalog: GET https://highmatch.ngrok.io/joynd/catalog
 
 -  Order: POST https://highmatch.ngrok.io/joynd/order
+
+**Basic Authentication Values:**
+
+-  Provided separately (this document is semi-public)
 
 -----
 
@@ -341,9 +345,25 @@ We assume the results are posted and perhaps the workflow state is advanced. Wha
 
 #### ~R4: Is `score` a floating point value typically from 0 to 100?
 
-For example, we might score something as a percentage, so the value is 0 to 1 and formatted as a percentage.
+For example, we might score something as a percentage, so the value is 0 to 1 and formatted as a percentage. In that case, we would need to transform it to a 0 to 100 value. We assume this is a floating point value, so an 83.3 would not be relayed to the ATS as an 83. 
 
 #### ~R5: What ATS vendors can use the `scoreArray` feature (which we assume is a list of sub-scale values providing supporting evidence to the primary `score` value)?
+
+```json
+{ 
+  ...
+  "scoreArray": [
+    {
+      "label": "string",
+      "value": "string"
+    }
+  ]
+}
+```
+
+
+
+Our initial clients are using Bullhorn, Greenhouse, and ADP.
 
 #### ~R6: There is a `reportUrl` scalar value and a `reportUrls` array. Do we put the primary URL in both entities or just `reportUrl`?
 
@@ -361,15 +381,231 @@ For example, we might score something as a percentage, so the value is 0 to 1 an
 
 ## ~OQ#: Other Questions
 
-#### ~OQ1. The first client expressed interest in deduplicating results. Alexander said there may be some capability here. If so, what is it and how does it affect our implementation effort?
+#### ~OQ1. The first client expressed interest in deduplicating results. Alexander relayed to Kelly there may be some capability here. If so, what is it and how does it affect our implementation effort?
 
-For context, the client inquired where there could be a policy in place that does something similar to the following:
+For context, the client inquired whether a policy could be developed that does something similar to the following:
 
 1.  Assume the deduplication policy is that Person A can only take assessment Z once every 90 days.
-2.  Person A is assigned Z on Jan 1. Call this Z.A.1.
-    -  Z has not been assigned to A in 90 days, so Order is performed.
-3.  Person A is assigned Z again on Feb 1 (less than 90 days later).  Call this Z.A.2.
-    -  Z was assigned to Z.A.1 within the prior 90 days, so the Order is denied *or* the results for Z.A.1 are assocated to Z.A.2 (probably a better outcome).
-4.  Person A is assigned Z again on June 1 (180 days after Z.A.1). Call this Z.A.3.
-    -  Z was assigned to Z.A.1 more than 90 days ago, so the Z.A.3 Order is processed.
-    -  Z is now assigned to Z.A.1 and Z.A.3.
+2.  Person A originates in the source ATS on Jan 1. At this point, Person A has never been assigned an assessment.
+3.  Person A is assigned Z on Jan 1. This Order is *Z.A.1*.
+    -  Z has *not* been assigned to Person A in 90 days, so Order is performed.
+4.  Person A is assigned Z again on Feb 1 (less than 90 days later).  This Order is *Z.A.2*.
+    -  Person A was assigned to *Z.A.1* within the prior 90 days, so the Order is denied *or* the results for *Z.A.1* are assocated to *Z.A.2* (probably a better outcome since it avoids an error condition in the source ATS).
+5.  Person A is assigned Z again on June 1 (180 days after *Z.A.1*). This Order is *Z.A.3*.
+    -  Person A was assigned to *Z.A.1* more than 90 days ago, so the *Z.A.3* Order is processed.
+    -  Person A is now assigned to *Z.A.1* and *Z.A.3*.
+
+#### OQ2. Are the same basic authentication parameters Joynd uses when calling HighMatch used when HighMatch calls Joynd?
+
+# Example Flow 1
+
+1.  Catalog request
+2.  Create new candidate (subject) and assign assessment.
+3.  Update assessment status on start/resume.
+4.  Post completed results.
+
+## E1.1 Joynd Requests Catalog
+
+HighMatch API receives an inbound call to `GET /joynd/catalog/highmatch-dev` where `highmatch-dev` is the `clientId` value.
+
+HighMatch finds 3 assessments related to `clientId=highmatch-dev` and returns the following JSON with a `200` response code.
+
+```json
+{
+  "Catalog": [
+    {
+      "package": {
+        "packageId": "hm-per-asmt",
+        "name": "Personality",
+        "services": []
+      }
+    },
+    {
+      "package": {
+        "packageId": "hm-cog-asmt",
+        "name": "Cognitive",
+        "services": []
+      }
+    },
+    {
+      "package": {
+        "packageId": "hm-math-asmt",
+        "name": "Math Fundamentals",
+        "services": []
+      }
+    }
+  ]
+}
+```
+
+## E1.2 Joynd Posts an Order for Math Fundamentals Assessment
+
+HighMatch API receives an inbound call to `POST /joynd/order` for a recruiter-initiated assessment order (not candidate-initiated via a portal application). 
+
+The candidate is:
+
+-  ATS ID: C31415
+-  Jeff Adkisson
+-  Jeff@HighMatch.com
+-  444-555-1234
+
+The job is:
+
+-  ATS ID: J2718
+-  Jr. Software Engineer
+
+The recruiter is:
+
+-  ATS ID: R1618
+-  Frank Herbert
+-  Frank@SpacingGuild.com
+
+```json
+{
+  "orderInfo": {
+    "requesterRefId": "???",
+    "clientId": "highmatch-dev",
+    "packageId": "hm-math-asmt",
+    "jobId": "J2718",
+    "jobTitle": "Jr. Software Engineer",
+    "jobScoringRef": "???",
+    "requesterId": "R1618",
+    "requesterEmail": "Frank@SpacingGuild.com",
+    "emailInvite": true,
+    "billingReference1": "???",
+    "billingReference2": "???"
+  },
+  "sendResultsToURL": "???",
+  "onCompletionURL": "", //assuming empty on recruiter-initiated
+  "subject": {
+    "id": "C31415",
+    "firstName": "Jeff",
+    "lastName": "Adkisson",
+    "middleNames": "",
+    "nationalId": "???",
+    "dateOfBirth": "1770-12-16",
+    "phone": "444-555-1234",
+    "addressLine1": "1313 Mockingbird Lane",
+    "addressLine2": "",
+    "city": "Mockingbird Heights",
+    "state": "Los Angeles",
+    "postalCode": "90210",
+    "country": "USA",
+    "email": "Jeff@HighMatch.com",
+    "positionHistory": [],
+    "educationHistory": [],
+    "driversLicense": {},
+    "licenses": [],
+    "references": [],
+    "customFields": []
+  }
+}
+```
+
+*??? = unclear what that field does/contains.*
+
+HighMatch processes the inbound JSON.
+
+1.  `subject.id: C31415` does not map to an existing HighMatch candidate in the HighMatch account related to `highmatch-dev`, so HighMatch creates an assessment participant named `Jeff Adkisson` related to `subject.id: C31415`.
+2.  The `highmatch-dev` HighMatch account, contains an assessment whose ID matches `packageId: hm-math-asmt`. HighMatch assigns the assessment to `subject.id: C31415` and assigns the order ID to `C31415.hm-math-asmt.1`.
+3.  HighMatch synchronously returns a `200` success to the awaiting Joynd HTTP caller with the following payload:
+
+```json
+{
+  "providerOrderId": "C31415.hm-math-asmt.1",
+  "orderAccessURL": "???"
+}	
+```
+
+*??? = unclear what that field does/contains.*
+
+4.  `emailInvite` is `true`, so HighMatch asynchronously sends an assessment email invitation to `Jeff@HighMatch.com` for provider order ID  `C31415.hm-math-asmt.1`.  HighMatch also schedules numerous completion reminder emails to be sent to provider order ID `C31415.hm-math-asmt.1`.
+
+## E1.3 HighMatch Updates Status for an Order for Math Fundamentals Assessment
+
+Jeff Adkisson (`providerOrderId: C31415.hm-math-asmt.1` ) receives a Math Fundamentals assessment email invitation sent by HighMatch.
+
+Jeff clicks the link and starts the assessment.
+
+HighMatch asynchronously calls Joynd to update the candidate's status in the target ATS to note that Jeff started the Math Fundamentals assessment.
+
+HighMatch calls `POST joyndApiUrl/Results` with the following JSON payload:
+
+```json
+{
+  "requesterRefId": "???",
+  "clientId": "highmatch-dev",
+  "providerOrderId": "C31415.hm-math-asmt.1", //Jeff Adkisson, Math Fundamentals
+  "status": "Started Assessment",
+  "orderComplete": false
+}
+```
+
+*??? = unclear what that field does/contains.*
+
+Jeff finishes half of the assessment, closes his browser, then takes a long nap with  his dog. After his nap, he watches some Tik Tok videos, eats some cold oatmeal, and worries about finishing the assessment he was assigned.
+
+Jeff does some self-affirmation exercises, then nervously resumes the assessment. HighMatch calls `POST joyndApiUrl/Results` with the following JSON payload:
+
+```json
+{
+  "requesterRefId": "???",
+  "clientId": "highmatch-dev",
+  "providerOrderId": "C31415.hm-math-asmt.1", //Jeff Adkisson, Math Fundamentals
+  "status": "Resumed Assessment",
+  "orderComplete": false
+}
+```
+
+*??? = unclear what that field does/contains.*
+
+## E1.4 HighMatch Posts Completed Results for an Order for Math Fundamentals Assessment
+
+Jeff Adkisson (`providerOrderId: C31415.hm-math-asmt.1` ) completed his Math Fundamentals assessment. Jeff feels a sense of accomplishment and is confident he aced the assessment. His dog gives him a couple of congratulatory licks, then shoves a slobbery ball into his hand. 
+
+-  Result: Needs Improvement
+-  Score: 60th Percentile (0.60)
+-  Sub Scores:
+   -  Addition: 80, Acceptable
+   -  Subtraction: 70, Acceptable
+   -  Multiplication: 40, Needs Improvment
+   -  Division: 12, Embarrassing
+
+While Jeff throws the ball, HighMatch calls `POST joyndApiUrl/Results` with the following JSON payload: 
+
+```json
+{
+  "requesterRefId": "???",
+  "clientId": "highmatch-dev",
+  "providerOrderId": "C31415.hm-math-asmt.1", //Jeff Adkisson, Math Fundamentals
+  "status": "Complete",
+  "orderComplete": true
+  "result": "Needs Improvement",
+  "score": 60,
+  "scoreArray": [
+    {
+      "label": "Addition",
+      "value": "80th percentile, Acceptable"
+    },
+		{
+      "label": "Subtraction",
+      "value": "70th percentile, Acceptable"
+    },
+		{
+      "label": "Multiplication",
+      "value": "40th percentile, Needs Improvement"
+    },
+		{
+      "label": "Division",
+      "value": "12th percentile, Embarrasing"
+    }
+  ],
+  "reportURL": "https://reports.highmatch.com/Z12345678",
+  "reportURLs": []
+}
+```
+
+*??? = unclear what that field does/contains.*
+
+
+
