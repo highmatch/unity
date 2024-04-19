@@ -1,12 +1,10 @@
-# Client
+# Client ATS
 
-#### Target ATS
+The *first* HighMatch/Joynd client uses **Bullhorn**. 
 
-The *first* HighMatch/Joynd client uses **Bullhorn**.
+The *second* client is currently using **Greenhouse** and plans to move to **ADP** in late 2024. They may want to start on Greenhouse, then migrate to ADP. We are waiting to hear their plans.
 
-The *second* client is currently using Greenhouse and plans to move to ADP in late 2024. They may want to start on Greenhouse, then migrate to ADP. We are waiting to hear their plans.
-
-We plan to get the first client online and stable before starting deployment of the second client. We do not want greenfield coding problems to impact two clients if possible.
+We plan to integrate the first client and achieve stability *before* starting deployment of the second client (though planning for the second can start earlier). We do not want greenfield coding problems from the initial coding effort to impact two clients (if possible).
 
 # Dev Environment Criteria
 
@@ -20,7 +18,9 @@ We plan to get the first client online and stable before starting deployment of 
 
 -----
 
-**Inbound HighMatch QA/Staging URLs (for final testing prior to production deploment)**
+**Inbound HighMatch QA/Staging URLs **
+
+*Not initially used. This will be for final testing prior to production deploment.*
 
 -  Catalog: GET https://api.compass.qa-highmatch.com/joynd/catalog
 -  Catalog: POST https://api.compass.qa-highmatch.com/joynd/order
@@ -28,6 +28,8 @@ We plan to get the first client online and stable before starting deployment of 
 -----
 
 **Inbound HighMatch Production URLs**
+
+*Not available until the QA/Staging environment is certified as operational.*
 
 -  Catalog: GET https://api.compass.highmatch.com/joynd/catalog
 -  Catalog: POST https://api.compass.highmatch.com/joynd/order
