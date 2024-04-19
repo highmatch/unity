@@ -34,6 +34,10 @@ We plan to integrate the first client and achieve stability *before* starting de
 -  Catalog: GET https://api.compass.highmatch.com/joynd/catalog
 -  Catalog: POST https://api.compass.highmatch.com/joynd/order
 
+# Joynd API Documentation
+
+[https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0)
+
 # Unity API Questions
 
 ## ~C#: GET /Catalog QUESTIONS 
