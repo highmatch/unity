@@ -1,4 +1,6 @@
-# Client ATS
+# HighMatch / Joynd Integration
+
+## Client ATS
 
 The *first* HighMatch/Joynd client uses **Bullhorn**. 
 
@@ -6,7 +8,7 @@ The *second* client is currently using **Greenhouse** and plans to move to **ADP
 
 HighMatch plans to integrate the first client and achieve stability *before* starting deployment of the second client (though planning for the second can start earlier). We do not want greenfield coding problems from the initial coding effort to impact two clients (if possible).
 
-# Dev Environment Criteria
+## Dev Environment Criteria
 
 **Dev Client ID:** `dev-highmatch`
 
@@ -29,6 +31,10 @@ HighMatch plans to integrate the first client and achieve stability *before* sta
 -  Catalog: GET https://api.compass.qa-highmatch.com/joynd/catalog
 -  Catalog: POST https://api.compass.qa-highmatch.com/joynd/order
 
+**Basic Authentication Values:**
+
+-  Provided separately (this document is semi-public)
+
 -----
 
 **Inbound HighMatch Production URLs**
@@ -38,13 +44,17 @@ HighMatch plans to integrate the first client and achieve stability *before* sta
 -  Catalog: GET https://api.compass.highmatch.com/joynd/catalog
 -  Catalog: POST https://api.compass.highmatch.com/joynd/order
 
-# Joynd API Documentation
+**Basic Authentication Values:**
+
+-  Provided separately (this document is semi-public)
+
+## Unity API Documentation
 
 [https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0)
 
-# Unity API Questions
+## Unity API Questions
 
-## ~C#: GET /Catalog QUESTIONS 
+### ~C#: GET /Catalog QUESTIONS 
 
 [https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Packages](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Packages )
 
@@ -67,17 +77,17 @@ HighMatch plans to integrate the first client and achieve stability *before* sta
 }
 ```
 
-### ~C1. What does the Services array do in GET /Catalog?
+#### ~C1. What does the Services array do in GET /Catalog?
 
 When a catalog request arrives, HighMatch will return an array of `package` objects where `package.packageId` is the ID you will send for a new Order and `package.name` is what is displayed in the target ATS.
 
 What does the `package.services` array do?
 
-### ~C2. Error Handling - 405
+#### ~C2. Error Handling - 405
 
 Swagger shows a 405 error code under GET Catalog. Should we return this if the `clientId` parameter is invalid (or no longer a valid HighMatch customer)? How does Joynd respond if a 405 is returned?
 
-### ~C3. Error Handling - 503
+#### ~C3. Error Handling - 503
 
 Swagger shows a 503 error code under GET Catalog. Should we return this when we are offline for maintenance? How does Joynd (and the source ATS) respond if a 503 is returned?
 
@@ -103,11 +113,11 @@ It appears if we have any other problem, we should return the following model:
 -  Does it cancel a retry callback? 
 -  Are there any specific `errorCode` value(s) we need to return?
 
-## ~OI#: POST /Order `orderInfo` Questions
+### ~OI#: POST /Order `orderInfo` Questions
 
 [https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Order](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/Order)
 
-#### ~OI1. Questions on `orderInfo` fields that may not be relevant to HighMatch.
+##### ~OI1. Questions on `orderInfo` fields that may not be relevant to HighMatch.
 
 ```json
 {
@@ -175,7 +185,7 @@ If not, then we will send a text if `orderInfo.emailInvite` is true and `subject
 
 #### OI5. Is `onCompletionURL` going to be empty if redirection is unnecessary? Is this only used for candidate-initiated (portal-based) applications?
 
-## ~S#: POST /Order `subject` questions
+### ~S#: POST /Order `subject` questions
 
 ```json
  "subject": {
@@ -297,7 +307,7 @@ We use that value for invitations and completion reminders.
 
 Is the behavior the same for this method as the GET Catalog method?
 
-## ~R#: POST /Results Questions
+### ~R#: POST /Results Questions
 
 [https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/results](https://app.swaggerhub.com/apis-docs/hrnx4/HRNXScreening/2.1.0#/Screening/results)
 
@@ -379,7 +389,7 @@ Our initial clients are using Bullhorn, Greenhouse, and ADP.
 
 #### ~R7: If HighMatch receives any response other than a 200 from POST /Order, we will retry N seconds later up to M times when N is an exponential backoff value computed via the attempt number. Is there a suggested approach for attempting the transaction again?
 
-## ~OQ#: Other Questions
+### ~OQ#: Other Questions
 
 #### ~OQ1. The first client expressed interest in deduplicating results. Alexander relayed to Kelly there may be some capability here. If so, what is it and how does it affect our implementation effort?
 
@@ -397,7 +407,7 @@ For context, the client inquired whether a policy could be developed that does s
 
 #### OQ2. Are the same basic authentication parameters Joynd uses when calling HighMatch used when HighMatch calls Joynd?
 
-# Example Flow 1
+## Example Flow 1
 
 This flow is included to validate that HighMatch understands exactly how to work with the Joynd API and JSON paylods. It includes:
 
@@ -406,11 +416,11 @@ This flow is included to validate that HighMatch understands exactly how to work
 3.  Update assessment status on start/resume.
 4.  Post completed results.
 
-## E1.1 Joynd Requests Catalog
+### E1.1 Joynd Requests Catalog
 
 HighMatch API receives an inbound call to `GET /joynd/catalog/highmatch-dev` where `highmatch-dev` is the `clientId` value.
 
-HighMatch finds 3 assessments related to `clientId=highmatch-dev` and returns the following JSON with a `200` response code.
+HighMatch finds 3 assessments related to `clientId=highmatch-dev` and returns the following JSON with a `200` response code.
 
 ```json
 {
@@ -435,12 +445,20 @@ HighMatch finds 3 assessments related to `clientId=highmatch-dev` and returns th
         "name": "Math Fundamentals",
         "services": []
       }
+    },
+    ,
+    {
+      "package": {
+        "packageId": "hm-chem-asmt",
+        "name": "Chemistry Fundamentals",
+        "services": []
+      }
     }
   ]
 }
 ```
 
-## E1.2 Joynd Posts an Order for Math Fundamentals Assessment
+### E1.2 Joynd Posts an Order for Math Fundamentals Assessment
 
 HighMatch API receives an inbound call to `POST /joynd/order` for a recruiter-initiated assessment order (not candidate-initiated via a portal application). 
 
@@ -523,7 +541,7 @@ HighMatch processes the inbound JSON.
 
 4.  `emailInvite` is `true`, so HighMatch asynchronously sends an assessment email invitation to `Jeff@HighMatch.com` for provider order ID  `C31415.hm-math-asmt.1`.  HighMatch also schedules numerous completion reminder emails to be sent to provider order ID `C31415.hm-math-asmt.1`.
 
-## E1.3 HighMatch Updates Status for an Order for Math Fundamentals Assessment
+### E1.3 HighMatch Updates Status for an Order for Math Fundamentals Assessment
 
 Jeff Adkisson (`providerOrderId: C31415.hm-math-asmt.1` ) receives a Math Fundamentals assessment email invitation sent by HighMatch.
 
@@ -561,7 +579,7 @@ Jeff does some self-affirmation exercises, then nervously resumes the assessment
 
 *??? = unclear what that field does/contains.*
 
-## E1.4 HighMatch Posts Completed Results for an Order for Math Fundamentals Assessment
+### E1.4 HighMatch Posts Completed Results for an Order for Math Fundamentals Assessment
 
 Jeff Adkisson (`providerOrderId: C31415.hm-math-asmt.1` ) completed his Math Fundamentals assessment. Jeff feels a sense of accomplishment and is confident he aced the assessment. His dog gives him a couple of congratulatory licks, then shoves a slobbery ball into his hand. 
 
@@ -573,7 +591,7 @@ Jeff Adkisson (`providerOrderId: C31415.hm-math-asmt.1` ) completed his Math Fun
    -  Multiplication: 40, Needs Improvment
    -  Division: 12, Embarrassing
 
-While Jeff throws the ball, HighMatch calls `POST joyndApiUrl/Results` with the following JSON payload: 
+While Jeff throws the ball to the dog, HighMatch calls `POST joyndApiUrl/Results` with the following JSON payload: 
 
 ```json
 {
@@ -609,5 +627,96 @@ While Jeff throws the ball, HighMatch calls `POST joyndApiUrl/Results` with the 
 
 *??? = unclear what that field does/contains.*
 
+In the event the call from HighMatch to Joynd fails, HighMatch will queue the message and reattempt delivery up to 7 days. If all delivery attempts fail, HighMatch will mark the message as Dead Letter, which will alert the administrator that a manual intervention may be necessary to restart processing.
 
 
+## Example Flow 2
+
+This flow is included to validate that HighMatch understands exactly how to work with the Joynd API and JSON paylods. It includes:
+
+1.  Create assessment for existing candidate (subject)
+
+This flow continues the example from Example Flow 1.
+
+### E2.1 Joynd Posts an Order for Chemistry Fundamentals Assessment for Previously Integrated ATS Candidate
+
+HighMatch API receives an inbound call to `POST /joynd/order` for a recruiter-initiated assessment order (not candidate-initiated via a portal application). 
+
+The candidate is:
+
+-  ATS ID: C31415
+-  Jeff Adkisson
+-  Jeff@HighMatch.com
+-  444-555-1234
+
+The job is:
+
+-  ATS ID: J60221408
+-  Chemical Engineer
+
+The recruiter is:
+
+-  ATS ID: R8314
+-  Dimitri Mendeleev
+-  Dimitri@SpacingGuild.com
+
+```json
+{
+  "orderInfo": {
+    "requesterRefId": "???",
+    "clientId": "highmatch-dev",
+    "packageId": "hm-chem-asmt",
+    "jobId": "J60221408",
+    "jobTitle": "Chemical Engineer",
+    "jobScoringRef": "???",
+    "requesterId": "R8314",
+    "requesterEmail": "Dimitri@SpacingGuild.com",
+    "emailInvite": true,
+    "billingReference1": "???",
+    "billingReference2": "???"
+  },
+  "sendResultsToURL": "???",
+  "onCompletionURL": "", //assuming empty on recruiter-initiated
+  "subject": {
+    "id": "C31415",
+    "firstName": "Jeffrey",
+    "lastName": "Adkisson",
+    "middleNames": "W.",
+    "nationalId": "???",
+    "dateOfBirth": "1770-12-16",
+    "phone": "444-555-1234",
+    "addressLine1": "1313 Mockingbird Lane",
+    "addressLine2": "",
+    "city": "Mockingbird Heights",
+    "state": "Los Angeles",
+    "postalCode": "90210",
+    "country": "USA",
+    "email": "Jeffrey@HighMatch.com",
+    "positionHistory": [],
+    "educationHistory": [],
+    "driversLicense": {},
+    "licenses": [],
+    "references": [],
+    "customFields": []
+  }
+}
+```
+
+*??? = unclear what that field does/contains.*
+
+HighMatch processes the inbound JSON.
+
+1.  `subject.id: C31415` maps to an existing HighMatch candidate in the HighMatch account related to `highmatch-dev`, so HighMatch updates the assessment participant related to `subject.id: C31415`. The participant's name previously was Jeff Adkisson. The inbound JSON has a different name, so the participant's name is updated to Jeffrey W. Adkisson and his email address is updated from Jeff@HighMatch.com to Jeff@HighMatch.com
+2.  The `highmatch-dev` HighMatch account, contains an assessment whose ID matches `packageId: hm-chem-asmt`. HighMatch assigns the assessment to `subject.id: C31415` and assigns the order ID to `C31415.hm-chem-asmt.1`.
+3.  HighMatch synchronously returns a `200` success to the awaiting Joynd HTTP caller with the following payload:
+
+```json
+{
+  "providerOrderId": "C31415.hm-chem-asmt.1",
+  "orderAccessURL": "???"
+}	
+```
+
+*??? = unclear what that field does/contains.*
+
+4.  `emailInvite` is `true`, so HighMatch asynchronously sends an assessment email invitation to `Jeffrey@HighMatch.com` for provider order ID  `C31415.hm-math-asmt.1`.  HighMatch also schedules numerous completion reminder emails to be sent to provider order ID `C31415.hm-chem-asmt.1`.
