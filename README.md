@@ -399,8 +399,10 @@ For context, the client inquired whether a policy could be developed that does s
 
 # Example Flow 1
 
+This flow is included to validate that HighMatch understands exactly how to work with the Joynd API and JSON paylods. It includes:
+
 1.  Catalog request
-2.  Create new candidate (subject) and assign assessment.
+2.  Create new candidate (subject), assign an assessment, and send an invitation.
 3.  Update assessment status on start/resume.
 4.  Post completed results.
 
